@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:int="http://www.springframework.org/schema/integration"
+       xmlns:int-amqp="http://www.springframework.org/schema/integration/amqp"
+       xmlns:rabbit="http://www.springframework.org/schema/rabbit"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+                           http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/integration
+                           http://www.springframework.org/schema/integration/spring-integration.xsd
+                           http://www.springframework.org/schema/integration/amqp
+                           http://www.springframework.org/schema/integration/amqp/spring-integration-amqp.xsd
+                           http://www.springframework.org/schema/rabbit
+                           http://www.springframework.org/schema/rabbit/spring-rabbit.xsd">
+ 
+ 
+    <!-- RabbitMQ configuration virtual-host=vhost_1 -->
+    <rabbit:connection-factory
+            id="rabbitConnectionFactory"
+            host="${spring.rabbitmq.host}"
+            port="${spring.rabbitmq.port}"
+            username="${spring.rabbitmq.username}"
+            password="${spring.rabbitmq.password}"
+            virtual-host="spx2-local-fran"
+            publisher-returns="true"/>
+ 
+    <rabbit:template id="amqpTemplate" connection-factory="rabbitConnectionFactory" />
+    <rabbit:admin id="rabbitAdmin" connection-factory="rabbitConnectionFactory" />
+    <rabbit:listener-container connection-factory="rabbitConnectionFactory" auto-startup="true" requeue-rejected="false" />
+    
+    <bean id="rabbitListenerContainerFactory"
+	      class="org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory">
+	    <property name="connectionFactory" ref="rabbitConnectionFactory"/>
+	    <property name="concurrentConsumers" value="3"/>
+	    <property name="maxConcurrentConsumers" value="10"/>
+	</bean>
+	<!--  -->
+    
+    
+    <!-- RabbitMQ configuration virtual-host=vhost_2 -->
+    <rabbit:connection-factory
+            id="rabbitConnectionFactory_2"
+            host="${spring.rabbitmq.host}"
+            port="${spring.rabbitmq.port}"
+            username="${spring.rabbitmq.username}"
+            password="${spring.rabbitmq.password}"
+            virtual-host="spx2-local-fran_2"
+            publisher-returns="true"/>
+ 
+    <rabbit:template id="amqpTemplate_2" connection-factory="rabbitConnectionFactory_2" />
+    <rabbit:admin id="rabbitAdmin_2" connection-factory="rabbitConnectionFactory_2"/>
+    <rabbit:listener-container connection-factory="rabbitConnectionFactory_2" auto-startup="true" requeue-rejected="false" />
+	 
+	<bean id="rabbitListenerContainerFactory_2"
+	      class="org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory">
+	    <property name="connectionFactory" ref="rabbitConnectionFactory_2"/>
+	</bean>
+	<!--  -->
+ 
+ 
+ 
+    <!-- RabbitMQ Queues / Exchanges configuration virtual-host=vhost_1 -->
+    <rabbit:queue name="queue-vhost-1" durable="true" declared-by="rabbitAdmin" />
+     
+    <rabbit:topic-exchange name="exchange-vhost-1" declared-by="rabbitAdmin">
+        <rabbit:bindings>
+            <rabbit:binding queue="queue-vhost-1" pattern="vhost-1.#"></rabbit:binding>
+        </rabbit:bindings>
+    </rabbit:topic-exchange>
+    <!-- -->
+    
+    
+    
+    <!-- RabbitMQ Queues / Exchanges configuration virtual-host=vhost_2 -->
+    <rabbit:queue name="queue-vhost-2" durable="true" declared-by="rabbitAdmin_2" />
+     
+    <rabbit:topic-exchange name="exchange-vhost-2" declared-by="rabbitAdmin_2">
+        <rabbit:bindings>
+            <rabbit:binding queue="queue-vhost-2" pattern="vhost-2.#"></rabbit:binding>
+        </rabbit:bindings>
+    </rabbit:topic-exchange>
+    <!-- -->
+
+ 
+    <!-- Channels -->
+    <int:channel id="producingChannel_1" />
+    <int:channel id="producingChannel_2" />
+    <int:channel id="consumingChannel" />
+    <int:channel id="errorChannel" />
+    <!-- Channels -->
+    
+    
+    <int:service-activator input-channel="errorChannel" ref="notificationErrorHandler"/>
+     
+    
+    <!-- Producing service virtual-host=vhost_1 -->
+    <int:gateway id="gateway_1" default-request-channel="producingChannel_1" service-interface="com.fjmpaez.queuing.Gateway">
+        <int:default-header name="routingKey" value="vhost-1.gateway_1"/>
+    </int:gateway>
+
+    <int:chain input-channel="producingChannel_1">
+        <int:object-to-json-transformer/>
+        <int-amqp:outbound-channel-adapter exchange-name="exchange-vhost-1" routing-key-expression="headers.routingKey" mapped-request-headers="*" amqp-template="amqpTemplate" />
+    </int:chain>
+    <!--  -->
+    
+    
+    
+    <!-- Producing service virtual-host=vhost_1 -->
+    <int:gateway id="gateway_2" default-request-channel="producingChannel_2" service-interface="com.fjmpaez.queuing.Gateway2">
+        <int:default-header name="routingKey" value="vhost-2.gateway_2"/>
+    </int:gateway>
+
+    <int:chain input-channel="producingChannel_2">
+        <int:object-to-json-transformer/>
+        <int-amqp:outbound-channel-adapter exchange-name="exchange-vhost-2" routing-key-expression="headers.routingKey" mapped-request-headers="*" amqp-template="amqpTemplate_2" />
+    </int:chain>
+    <!--  -->
+    
+
+     
+    <!-- RabbitMQ => Service (Consuming) virtual-host=vhost_1 -->
+    <int-amqp:inbound-channel-adapter channel="consumingChannel" queue-names="queue-vhost-1" concurrent-consumers="5" mapped-request-headers="*" connection-factory="rabbitConnectionFactory" error-channel="errorChannel" />
+    <!-- RabbitMQ => Service (Consuming) -->
+    
+    <!-- RabbitMQ => Service (Consuming) virtual-host=vhost_2 -->
+    <int-amqp:inbound-channel-adapter channel="consumingChannel" queue-names="queue-vhost-2" concurrent-consumers="5" mapped-request-headers="*" connection-factory="rabbitConnectionFactory_2" error-channel="errorChannel" />
+    <!--  -->
+    
+
+     
+    <!-- Routing -->
+    <int:chain input-channel="consumingChannel">
+    	<int:json-to-object-transformer type="com.fjmpaez.pojo.Request"/>
+        <int:service-activator ref="workingService" method="processMessageFromQueue" />
+    </int:chain>
+    <!--  -->
+
+ 
+</beans>
