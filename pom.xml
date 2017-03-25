@@ -4,7 +4,7 @@
 
 	<groupId>com.fjmpaez</groupId>
 	<artifactId>spring-integration-rabbitmq-2-virtual_host</artifactId>
-	<version>1.7.0</version>
+	<version>1.8.0-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
 	<name>spring-integration-rabbitmq-2-virtual_host</name>
@@ -132,10 +132,7 @@
 	
 	
 	<scm>
-		<url>https://github.com/fjmpaez911/spring-integration-rabbitmq-2-virtual_host</url>
-		<connection>scm:git:https://github.com/fjmpaez911/spring-integration-rabbitmq-2-virtual_host.git</connection>
-		<developerConnection>scm:git:https://github.com/fjmpaez911/spring-integration-rabbitmq-2-virtual_host.git</developerConnection>
-		<tag>HEAD</tag>
+		<developerConnection>scm:git:https://github.com/fjmpaez911/spring-integration-rabbitmq-2-virtual_host/tree/develop</developerConnection>
 	</scm>
 	
 	<distributionManagement>
