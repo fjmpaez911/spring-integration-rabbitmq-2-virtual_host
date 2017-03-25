@@ -4,7 +4,7 @@
 
 	<groupId>com.fjmpaez</groupId>
 	<artifactId>spring-integration-rabbitmq-2-virtual_host</artifactId>
-	<version>1.3.0</version>
+	<version>1.4.0-SANPSHOT</version>
 	<packaging>jar</packaging>
 
 	<name>spring-integration-rabbitmq-2-virtual_host</name>
