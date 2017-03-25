@@ -130,5 +130,13 @@
 			<url>https://repo.spring.io/libs-milestone</url>
 		</repository>
 	</repositories>
+	
+	
+	<scm>
+		<url>https://github.com/fjmpaez911/spring-integration-rabbitmq-2-virtual_host</url>
+		<connection>scm:git:https://github.com/fjmpaez911/spring-integration-rabbitmq-2-virtual_host.git</connection>
+		<developerConnection>scm:git:https://github.com/fjmpaez911/spring-integration-rabbitmq-2-virtual_host.git</developerConnection>
+		<tag>HEAD</tag>
+	</scm>
 
 </project>
